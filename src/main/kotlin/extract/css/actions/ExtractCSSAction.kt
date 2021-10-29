@@ -18,16 +18,16 @@ class ExtractCSSAction : AnAction() {
     override fun actionPerformed(e: AnActionEvent) {
         val xmlFile = e.getData(CommonDataKeys.PSI_FILE) as? XmlFile ?: return
         val project = e.project ?: return
-        val classes = mutableListOf<String>()
+        val classNames = mutableListOf<String>()
         xmlFile.acceptChildren(object : XmlRecursiveElementWalkingVisitor() {
             override fun visitXmlAttribute(attribute: XmlAttribute) {
                 if (attribute.name == "class") {
-                    classes.addAll(attribute.value?.split(" ") ?: emptyList())
+                    classNames.addAll(attribute.value?.split(" ")?.filter(String::isNotBlank) ?: emptyList())
                 }
             }
         })
 
-        val newContent = classes.joinToString("\n\n") { ".$it {}" }
+        val newContent = classNames.joinToString("\n\n") { ".$it {}" }
 
         WriteCommandAction
             .writeCommandAction(project)
