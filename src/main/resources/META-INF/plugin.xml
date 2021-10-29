@@ -1,8 +1,7 @@
 <idea-plugin>
     <id>intellij-extract-css</id>
     <name>CSS Extractor</name>
-    <vendor>JetBrains</vendor>
-
+    <vendor>Andrey Starovoyt</vendor>
     <depends>com.intellij.css</depends>
     
     <actions>
