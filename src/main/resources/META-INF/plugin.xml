@@ -1,6 +1,6 @@
 <idea-plugin>
     <id>intellij-extract-css</id>
-    <name>CSS Extractor</name>
+    <name>eCSStractor</name>
     <vendor>Andrey Starovoyt</vendor>
     <depends>com.intellij.css</depends>
     
@@ -10,4 +10,9 @@
             <add-to-group group-id="EditorPopupMenu" />
         </action>
     </actions>
+    
+    <extensions defaultExtensionNs="com.intellij">
+        <projectConfigurable instance="extract.css.actions.ExtractCSSConfigurable" />
+        <projectService serviceImplementation="extract.css.actions.ExtractCSSSettings"/>
+    </extensions>
 </idea-plugin>
