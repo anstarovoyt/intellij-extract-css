@@ -3,6 +3,7 @@ package extract.css.actions
 import com.intellij.ide.scratch.ScratchRootType
 import com.intellij.lang.Language
 import com.intellij.lang.css.CSSLanguage
+import com.intellij.lang.xml.XmlSurroundDescriptor
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
@@ -10,10 +11,7 @@ import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.io.FileUtil
-import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiFileFactory
-import com.intellij.psi.PsiManager
-import com.intellij.psi.XmlRecursiveElementWalkingVisitor
+import com.intellij.psi.*
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.xml.XmlAttribute
 import com.intellij.psi.xml.XmlFile
@@ -26,24 +24,44 @@ class ExtractCSSAction : AnAction() {
         val project = e.project ?: return
 
         val state: ExtractState = getInstance(project).state
-        val classNames = collectClassNames(xmlFile)
+        val classNames = collectClassNames(e, xmlFile)
         val newContent = generateContent(state, classNames)
 
         generateFileAndApply(project, state, xmlFile, newContent)
     }
 
-    private fun collectClassNames(xmlFile: XmlFile): List<String> {
+    private fun collectClassNames(e: AnActionEvent, xmlFile: XmlFile): List<String> {
         val classNames = mutableSetOf<String>()
-        xmlFile.acceptChildren(object : XmlRecursiveElementWalkingVisitor() {
-            override fun visitXmlAttribute(attribute: XmlAttribute) {
-                val name = attribute.name
-                if (name == "class" || name == "className") {
-                    classNames.addAll(attribute.value?.split(" ")?.filter(String::isNotBlank) ?: emptyList())
+        val elements = extractElementForVisiting(e, xmlFile)
+        for (element in elements) {
+            element.acceptChildren(object : XmlRecursiveElementWalkingVisitor() {
+                override fun visitXmlAttribute(attribute: XmlAttribute) {
+                    val name = attribute.name
+                    if (name == "class" || name == "className") {
+                        classNames.addAll(attribute.value?.split(" ")?.filter(String::isNotBlank) ?: emptyList())
+                    }
                 }
-            }
-        })
+            })
+        }
 
         return classNames.toList()
+    }
+
+    private fun extractElementForVisiting(e: AnActionEvent, xmlFile: XmlFile): List<PsiElement> {
+        val editor = e.getData(CommonDataKeys.EDITOR) ?: return listOf(xmlFile)
+        val selectionModel = editor.selectionModel
+        if (!selectionModel.hasSelection()) return listOf(xmlFile)
+        val blockSelectionStarts = selectionModel.blockSelectionStarts
+        val blockSelectionEnds = selectionModel.blockSelectionEnds
+
+        val result = mutableListOf<PsiElement>()
+
+        blockSelectionStarts.forEachIndexed { index, start ->
+            val end = blockSelectionEnds[index]
+            result.addAll(XmlSurroundDescriptor().getElementsToSurround(xmlFile, start, end))
+        }
+
+        return if (result.isEmpty()) listOf(xmlFile) else result
     }
 
     private fun generateFileAndApply(project: Project, state: ExtractState, xmlFile: XmlFile, newContent: String) {
