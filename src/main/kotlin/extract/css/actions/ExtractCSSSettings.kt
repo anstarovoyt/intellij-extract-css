@@ -45,7 +45,7 @@ class ExtractState {
     var bem: Boolean = false
     var bemComments: Boolean = false
     var bemElementPrefix: String = "__"
-    var bemElementModifierPrefix: String = "_"
+    var bemModifierPrefix: String = "_"
     
     fun languageValue() = TargetLanguage.valueOf(language)
     fun targetValue() = Target.valueOf(target)

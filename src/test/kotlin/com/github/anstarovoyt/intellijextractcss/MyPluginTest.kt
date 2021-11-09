@@ -8,113 +8,166 @@ import junit.framework.TestCase
 
 class MyPluginTest : BasePlatformTestCase() {
     fun testSimple() {
-        TestCase.assertEquals("""
+        TestCase.assertEquals(
+            """
             .foo {}
             .bar {}
-        """.trimIndent(), generateContent(ExtractState(), listOf("foo", "bar")))
+        """.trimIndent(), generateContent(ExtractState(), listOf("foo", "bar"))
+        )
     }
 
     fun testNoBEMSCSS() {
         val state = ExtractState()
         state.bem = true
         state.language = TargetLanguage.SCSS.name
-        TestCase.assertEquals("""
+        TestCase.assertEquals(
+            """
             .foo {}
             .bar {}
-        """.trimIndent(), generateContent(state, listOf("foo", "bar")))
+        """.trimIndent(), generateContent(state, listOf("foo", "bar"))
+        )
     }
-    
+
     fun testBEMElement() {
         val state = ExtractState()
         state.bem = true
         state.language = TargetLanguage.SCSS.name
-        TestCase.assertEquals("""
+        TestCase.assertEquals(
+            """
             .foo {
              &__element {}
             }
-        """.trimIndent(), generateContent(state, listOf("foo__element")))
+        """.trimIndent(), generateContent(state, listOf("foo__element"))
+        )
     }
 
     fun testBEMModifier() {
         val state = ExtractState()
         state.bem = true
         state.language = TargetLanguage.SCSS.name
-        TestCase.assertEquals("""
+        TestCase.assertEquals(
+            """
             .foo {
              &_modifier {}
             }
-        """.trimIndent(), generateContent(state, listOf("foo_modifier")))
+        """.trimIndent(), generateContent(state, listOf("foo_modifier"))
+        )
     }
 
     fun testBEMElementModifier() {
         val state = ExtractState()
         state.bem = true
         state.language = TargetLanguage.SCSS.name
-        TestCase.assertEquals("""
+        TestCase.assertEquals(
+            """
             .foo {
              &__element {
               &_modifier {}
              }
             }
-        """.trimIndent(), generateContent(state, listOf("foo__element_modifier")))
+        """.trimIndent(), generateContent(state, listOf("foo__element_modifier"))
+        )
     }
-    
+
     fun testBEMElements() {
         val state = ExtractState()
         state.bem = true
         state.language = TargetLanguage.SCSS.name
-        TestCase.assertEquals("""
+        TestCase.assertEquals(
+            """
             .foo {
              &__element {}
              &__element2 {}
             }
-        """.trimIndent(), generateContent(state, listOf("foo__element", "foo__element2")))
+        """.trimIndent(), generateContent(state, listOf("foo__element", "foo__element2"))
+        )
     }
-    
+
     fun testBEMModifiers() {
         val state = ExtractState()
         state.bem = true
         state.language = TargetLanguage.SCSS.name
-        TestCase.assertEquals("""
+        TestCase.assertEquals(
+            """
             .foo {
              &_modifier {}
              &_modifier2 {}
             }
-        """.trimIndent(), generateContent(state, listOf("foo_modifier", "foo_modifier2")))
+        """.trimIndent(), generateContent(state, listOf("foo_modifier", "foo_modifier2"))
+        )
     }
 
     fun testBEMElementModifierStylus() {
         val state = ExtractState()
         state.bem = true
         state.language = TargetLanguage.STYLUS.name
-        TestCase.assertEquals("""
+        TestCase.assertEquals(
+            """
             .foo
              &__element
               &_modifier
-        """.trimIndent(), generateContent(state, listOf("foo__element_modifier")))
+        """.trimIndent(), generateContent(state, listOf("foo__element_modifier"))
+        )
     }
-    
+
     fun testBEMElementModifiersStylus() {
         val state = ExtractState()
         state.bem = true
         state.language = TargetLanguage.STYLUS.name
-        TestCase.assertEquals("""
+        TestCase.assertEquals(
+            """
             .foo
              &__element
               &_modifier
               &_modifier2
-        """.trimIndent(), generateContent(state, listOf("foo__element_modifier", "foo__element_modifier2")))
+        """.trimIndent(), generateContent(state, listOf("foo__element_modifier", "foo__element_modifier2"))
+        )
     }
-    
+
     fun testBEMElementsStylus() {
         val state = ExtractState()
         state.bem = true
         state.language = TargetLanguage.STYLUS.name
-        TestCase.assertEquals("""
+        TestCase.assertEquals(
+            """
             .foo
              &__element
              &__element2
-        """.trimIndent(), generateContent(state, listOf("foo__element", "foo__element2")))
+        """.trimIndent(), generateContent(state, listOf("foo__element", "foo__element2"))
+        )
     }
 
+    fun testBEMElementModifierComments() {
+        val state = ExtractState()
+        state.bem = true
+        state.bemComments = true
+        state.language = TargetLanguage.SCSS.name
+        TestCase.assertEquals(
+            """
+                .foo {
+                 // .foo__element
+                 &__element {
+                  // .foo__element_modifier
+                  &_modifier {}
+                 }
+                }
+        """.trimIndent(), generateContent(state, listOf("foo__element_modifier"))
+        )
+    }
+
+    fun testBEMElementModifierStylusComments() {
+        val state = ExtractState()
+        state.bem = true
+        state.bemComments = true
+        state.language = TargetLanguage.STYLUS.name
+        TestCase.assertEquals(
+            """
+            .foo
+             // .foo__element
+             &__element
+              // .foo__element_modifier
+              &_modifier
+        """.trimIndent(), generateContent(state, listOf("foo__element_modifier"))
+        )
+    }
 }

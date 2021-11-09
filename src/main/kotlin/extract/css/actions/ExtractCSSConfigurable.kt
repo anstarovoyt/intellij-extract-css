@@ -70,7 +70,7 @@ class ExtractCSSConfigurable(private val project: Project) : Configurable {
                 bemNesting.isSelected != state.bem ||
                 bemComments.isSelected != state.bemComments ||
                 bemElementSeparator.text != state.bemElementPrefix ||
-                bemModifierSeparator.text != state.bemElementModifierPrefix
+                bemModifierSeparator.text != state.bemModifierPrefix
     }
 
     override fun reset() {
@@ -80,7 +80,7 @@ class ExtractCSSConfigurable(private val project: Project) : Configurable {
         bemNesting.isSelected = state.bem
         bemComments.isSelected = state.bemComments
         bemElementSeparator.text = state.bemElementPrefix
-        bemModifierSeparator.text = state.bemElementModifierPrefix
+        bemModifierSeparator.text = state.bemModifierPrefix
 
         updateVisibility()
     }
@@ -92,7 +92,7 @@ class ExtractCSSConfigurable(private val project: Project) : Configurable {
         state.bem = bemNesting.isSelected
         state.bemComments = bemComments.isSelected
         state.bemElementPrefix = bemElementSeparator.text
-        state.bemElementModifierPrefix = bemModifierSeparator.text
+        state.bemModifierPrefix = bemModifierSeparator.text
     }
 
     override fun getDisplayName(): String = "ECSStractor"

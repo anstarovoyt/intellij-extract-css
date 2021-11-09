@@ -56,29 +56,75 @@ private fun generateNesting(state: ExtractState, classNames: List<String>, brace
 
     val builder = StringBuilder()
 
+    val lineCommentLanguages =
+        mutableSetOf(TargetLanguage.SCSS, TargetLanguage.SASS, TargetLanguage.STYLUS, TargetLanguage.LESS)
+
     var first = true
+    val openBrace = if (braces) " {" else ""
+    val closeBrace = if (braces) "}" else ""
+    val commentStart = if (lineCommentLanguages.contains(state.languageValue())) "// " else "/* "
+    val commentEnd = if (lineCommentLanguages.contains(state.languageValue())) "" else " */"
+
     for (block in blocks) {
         when {
             first -> first = false
             else -> builder.append("\n")
         }
-        val openBrace = if (braces) " {" else ""
-        val closeBrace = if (braces) "}" else ""
-        builder.append(".").append(block.name).append(openBrace)
+        val prefixClass = "."
+        builder.append(prefixClass).append(block.name).append(openBrace)
         for ((_, element) in block.elements) {
             builder.append("\n")
-            builder.append(" &").append(state.bemElementPrefix).append(element.name).append(openBrace)
+            val elementOffset = " "
+            if (state.bemComments) {
+                builder.append(elementOffset)
+                    .append(commentStart)
+                    .append(prefixClass)
+                    .append(block.name)
+                    .append(state.bemElementPrefix)
+                    .append(element.name)
+                    .append(commentEnd)
+                    .append("\n")
+            }
+            builder.append(elementOffset).append("&").append(state.bemElementPrefix).append(element.name)
+                .append(openBrace)
             for (modifier in element.modifiers) {
                 builder.append("\n")
-                builder.append("  &").append(state.bemElementModifierPrefix).append(modifier).append(openBrace)
+                val modifierOffset = "  "
+                if (state.bemComments) {
+                    builder.append(modifierOffset)
+                        .append(commentStart)
+                        .append(prefixClass)
+                        .append(block.name)
+                        .append(state.bemElementPrefix)
+                        .append(element.name)
+                        .append(state.bemModifierPrefix)
+                        .append(modifier)
+                        .append(commentEnd)
+                        .append("\n")
+                }
+
+                builder.append(modifierOffset).append("&").append(state.bemModifierPrefix).append(modifier)
+                    .append(openBrace)
                     .append(closeBrace)
             }
 
             if (!element.isEmpty() && braces) builder.append("\n ").append(closeBrace) else builder.append(closeBrace)
         }
         for (modifier in block.modifiers) {
+            val topLevelModifierOffset = " "
             builder.append("\n")
-            builder.append(" &").append(state.bemElementModifierPrefix).append(modifier).append(openBrace)
+            if (state.bemComments) {
+                builder.append(topLevelModifierOffset)
+                    .append(commentStart)
+                    .append(prefixClass)
+                    .append(block.name)
+                    .append(state.bemModifierPrefix)
+                    .append(modifier)
+                    .append(commentEnd)
+                    .append("\n")
+            }
+            builder.append(topLevelModifierOffset).append("&").append(state.bemModifierPrefix).append(modifier)
+                .append(openBrace)
                 .append(closeBrace)
         }
 
@@ -91,7 +137,7 @@ private fun generateNesting(state: ExtractState, classNames: List<String>, brace
 private fun prepare(state: ExtractState, classNames: List<String>): List<BEMBlock> {
     val blocks = mutableMapOf<String, BEMBlock>()
     val elPrefix = state.bemElementPrefix
-    val modPrefix = state.bemElementModifierPrefix
+    val modPrefix = state.bemModifierPrefix
 
     for (className in classNames) {
         val indexOfElement = className.indexOf(elPrefix)
