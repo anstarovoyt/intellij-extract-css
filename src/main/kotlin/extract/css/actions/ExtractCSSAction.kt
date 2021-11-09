@@ -19,6 +19,73 @@ import com.intellij.psi.xml.XmlAttribute
 import com.intellij.psi.xml.XmlFile
 import java.awt.datatransfer.StringSelection
 
+class ExtractCSSAction : AnAction() {
+
+    override fun actionPerformed(e: AnActionEvent) {
+        val xmlFile = e.getData(CommonDataKeys.PSI_FILE) as? XmlFile ?: return
+        val project = e.project ?: return
+
+        val state: ExtractState = getInstance(project).state
+        val classNames = collectClassNames(xmlFile)
+        val newContent = generateContent(state, classNames)
+
+        generateFileAndApply(project, state, xmlFile, newContent)
+    }
+
+    private fun collectClassNames(xmlFile: XmlFile): MutableList<String> {
+        val classNames: MutableList<String> = mutableListOf()
+        xmlFile.acceptChildren(object : XmlRecursiveElementWalkingVisitor() {
+            override fun visitXmlAttribute(attribute: XmlAttribute) {
+                val name = attribute.name
+                if (name == "class" || name == "className") {
+                    classNames.addAll(attribute.value?.split(" ")?.filter(String::isNotBlank) ?: emptyList())
+                }
+            }
+        })
+        return classNames
+    }
+
+    private fun generateFileAndApply(project: Project, state: ExtractState, xmlFile: XmlFile, newContent: String) {
+        WriteCommandAction
+            .writeCommandAction(project)
+            .withName("Create File")
+            .run<Exception> {
+                val language = Language.findLanguageByID(state.language) ?: CSSLanguage.INSTANCE
+                val newFile = createNewFile(language, xmlFile, project, newContent) ?: return@run
+                when (state.targetValue()) {
+                    Target.NEW_FILE -> {
+                        val directory = xmlFile.parent ?: return@run
+                        val actualFile = directory.add(newFile) as? PsiFile ?: return@run
+                        actualFile.navigate(true)
+                    }
+                    Target.SCRATCH_FILE -> {
+                        val scratchFile = ScratchRootType.getInstance()
+                            .createScratchFile(project, newFile.name, language, newFile.text) ?: return@run
+                        val psiFile = PsiManager.getInstance(project).findFile(scratchFile)
+                        psiFile?.navigate(false)
+                    }
+                    Target.CLIPBOARD -> {
+                        CopyPasteManager.getInstance().setContents(StringSelection(newFile.text))
+                    }
+                }
+
+            }
+    }
+
+    private fun createNewFile(language: Language, xmlFile: XmlFile, project: Project, newContent: String): PsiFile? {
+        val defaultExtension = language.associatedFileType?.defaultExtension ?: "css"
+        val newName = "${FileUtil.getNameWithoutExtension(xmlFile.name)}.$defaultExtension"
+        val newFile =
+            PsiFileFactory.getInstance(project).createFileFromText(newName, language, newContent) ?: return null
+        return CodeStyleManager.getInstance(project).reformat(newFile) as? PsiFile
+    }
+
+    override fun update(e: AnActionEvent) {
+        e.presentation.isEnabledAndVisible =
+            e.getData(CommonDataKeys.PSI_FILE) is XmlFile && e.project != null
+    }
+}
+
 class BEMBlock(val name: String) {
     val modifiers: MutableSet<String> = mutableSetOf()
     val elements: MutableMap<String, BEMElement> = mutableMapOf()
@@ -42,96 +109,137 @@ fun generateContent(state: ExtractState, classNames: List<String>): String {
 }
 
 private fun generateBEM(state: ExtractState, classNames: List<String>, braces: Boolean): String {
-    return if (state.bem) generateNesting(state, classNames, braces) else generateSimple(classNames, braces)
+    return if (state.bem) generateBEMNesting(state, classNames, braces) else generateSimple(classNames, braces)
 }
 
 private fun generateSimple(classNames: List<String>, braces: Boolean) =
     classNames.joinToString("\n") { ".$it${if (braces) " {}" else ""}" }
 
-private fun generatePlainIndentBased(classNames: List<String>) =
-    classNames.joinToString("\n") { ".$it" }
-
-private fun generateNesting(state: ExtractState, classNames: List<String>, braces: Boolean): String {
+private fun generateBEMNesting(state: ExtractState, classNames: List<String>, braces: Boolean): String {
     val blocks = prepare(state, classNames)
-
     val builder = StringBuilder()
-
-    val lineCommentLanguages =
-        mutableSetOf(TargetLanguage.SCSS, TargetLanguage.SASS, TargetLanguage.STYLUS, TargetLanguage.LESS)
-
     var first = true
-    val openBrace = if (braces) " {" else ""
-    val closeBrace = if (braces) "}" else ""
-    val commentStart = if (lineCommentLanguages.contains(state.languageValue())) "// " else "/* "
-    val commentEnd = if (lineCommentLanguages.contains(state.languageValue())) "" else " */"
 
     for (block in blocks) {
         when {
             first -> first = false
             else -> builder.append("\n")
         }
-        val prefixClass = "."
-        builder.append(prefixClass).append(block.name).append(openBrace)
+
+        appendOpenBlock(builder, block, braces)
         for ((_, element) in block.elements) {
             builder.append("\n")
-            val elementOffset = " "
-            if (state.bemComments) {
-                builder.append(elementOffset)
-                    .append(commentStart)
-                    .append(prefixClass)
-                    .append(block.name)
-                    .append(state.bemElementPrefix)
-                    .append(element.name)
-                    .append(commentEnd)
-                    .append("\n")
-            }
-            builder.append(elementOffset).append("&").append(state.bemElementPrefix).append(element.name)
-                .append(openBrace)
+            appendComment(builder, state, block.name, element.name, null)
+            appendOpenElement(builder, state, braces, element)
             for (modifier in element.modifiers) {
                 builder.append("\n")
-                val modifierOffset = "  "
-                if (state.bemComments) {
-                    builder.append(modifierOffset)
-                        .append(commentStart)
-                        .append(prefixClass)
-                        .append(block.name)
-                        .append(state.bemElementPrefix)
-                        .append(element.name)
-                        .append(state.bemModifierPrefix)
-                        .append(modifier)
-                        .append(commentEnd)
-                        .append("\n")
-                }
-
-                builder.append(modifierOffset).append("&").append(state.bemModifierPrefix).append(modifier)
-                    .append(openBrace)
-                    .append(closeBrace)
+                appendComment(builder, state, block.name, element.name, modifier)
+                appendModifier(builder, state, braces, modifier, false)
             }
 
-            if (!element.isEmpty() && braces) builder.append("\n ").append(closeBrace) else builder.append(closeBrace)
+            appendCloseElement(element, braces, builder)
         }
         for (modifier in block.modifiers) {
-            val topLevelModifierOffset = " "
             builder.append("\n")
-            if (state.bemComments) {
-                builder.append(topLevelModifierOffset)
-                    .append(commentStart)
-                    .append(prefixClass)
-                    .append(block.name)
-                    .append(state.bemModifierPrefix)
-                    .append(modifier)
-                    .append(commentEnd)
-                    .append("\n")
-            }
-            builder.append(topLevelModifierOffset).append("&").append(state.bemModifierPrefix).append(modifier)
-                .append(openBrace)
-                .append(closeBrace)
+            appendComment(builder, state, block.name, null, modifier)
+            appendModifier(builder, state, braces, modifier, true)
         }
 
-        if (!block.isEmpty() && braces) builder.append("\n").append(closeBrace) else builder.append(closeBrace)
+        appendCloseBlock(block, braces, builder)
     }
 
     return builder.toString()
+}
+
+private fun appendCloseBlock(block: BEMBlock, braces: Boolean, builder: StringBuilder) {
+    val closeBrace = closeBrace(braces)
+    if (!block.isEmpty() && braces) {
+        builder.append("\n").append(closeBrace)
+    } else {
+        builder.append(closeBrace)
+    }
+}
+
+private fun appendCloseElement(element: BEMElement, braces: Boolean, builder: StringBuilder) {
+    val closeBrace = closeBrace(braces)
+    if (!element.isEmpty() && braces) {
+        builder.append("\n ").append(closeBrace)
+    } else {
+        builder.append(closeBrace)
+    }
+}
+
+private fun appendModifier(
+    builder: StringBuilder,
+    state: ExtractState,
+    braces: Boolean,
+    modifier: String,
+    topLevel: Boolean
+) {
+    builder
+        .append(if (topLevel) " " else "  ")
+        .append("&")
+        .append(state.bemModifierPrefix)
+        .append(modifier)
+        .append(openBrace(braces))
+        .append(closeBrace(braces))
+}
+
+private fun appendOpenElement(builder: StringBuilder, state: ExtractState, braces: Boolean, element: BEMElement) {
+    builder
+        .append(" ")
+        .append("&")
+        .append(state.bemElementPrefix)
+        .append(element.name)
+        .append(openBrace(braces))
+}
+
+private fun openBrace(braces: Boolean): String = if (braces) " {" else ""
+private fun closeBrace(braces: Boolean): String = if (braces) "}" else ""
+
+private fun appendOpenBlock(builder: StringBuilder, block: BEMBlock, braces: Boolean) {
+    builder
+        .append(".")
+        .append(block.name)
+        .append(openBrace(braces))
+}
+
+private fun appendComment(
+    builder: StringBuilder,
+    state: ExtractState,
+    blockName: String,
+    elementName: String?,
+    modifierName: String?
+) {
+    if (!state.bemComments) return
+
+    val lineCommentLanguages =
+        mutableSetOf(TargetLanguage.SCSS, TargetLanguage.SASS, TargetLanguage.STYLUS, TargetLanguage.LESS)
+    val commentStart = if (lineCommentLanguages.contains(state.languageValue())) "// " else "/* "
+    val commentEnd = if (lineCommentLanguages.contains(state.languageValue())) "" else " */"
+
+    val offset = if (elementName != null && modifierName != null) "  " else " "
+
+    builder
+        .append(offset)
+        .append(commentStart)
+        .append(".")
+        .append(blockName)
+
+    if (elementName != null) {
+        builder
+            .append(state.bemElementPrefix)
+            .append(elementName)
+    }
+    if (modifierName != null) {
+        builder
+            .append(state.bemModifierPrefix)
+            .append(modifierName)
+    }
+
+    builder
+        .append(commentEnd)
+        .append("\n")
 }
 
 private fun prepare(state: ExtractState, classNames: List<String>): List<BEMBlock> {
@@ -178,63 +286,3 @@ private fun hasModifier(
     elementWithModifier: String,
     modPrefix: String
 ) = indexOfModifier > 0 && elementWithModifier.length > indexOfModifier + modPrefix.length
-
-class ExtractCSSAction : AnAction() {
-
-    override fun actionPerformed(e: AnActionEvent) {
-        val xmlFile = e.getData(CommonDataKeys.PSI_FILE) as? XmlFile ?: return
-        val project = e.project ?: return
-
-        val state: ExtractState = getInstance(project).state
-        val classNames: MutableList<String> = mutableListOf()
-        xmlFile.acceptChildren(object : XmlRecursiveElementWalkingVisitor() {
-            override fun visitXmlAttribute(attribute: XmlAttribute) {
-                val name = attribute.name
-                if (name == "class" || name == "className") {
-                    classNames.addAll(attribute.value?.split(" ")?.filter(String::isNotBlank) ?: emptyList())
-                }
-            }
-        })
-
-        val newContent = generateContent(state, classNames)
-
-        WriteCommandAction
-            .writeCommandAction(project)
-            .withName("Create File")
-            .run<Exception> {
-                val language = Language.findLanguageByID(state.language) ?: CSSLanguage.INSTANCE
-                val newFile = createNewFile(language, xmlFile, project, newContent) ?: return@run
-                when (state.targetValue()) {
-                    Target.NEW_FILE -> {
-                        val directory = xmlFile.parent ?: return@run
-                        val actualFile = directory.add(newFile) as? PsiFile ?: return@run
-                        actualFile.navigate(true)
-                    }
-                    Target.SCRATCH_FILE -> {
-                        val scratchFile = ScratchRootType.getInstance()
-                            .createScratchFile(project, newFile.name, language, newFile.text) ?: return@run
-                        val psiFile = PsiManager.getInstance(project).findFile(scratchFile)
-                        psiFile?.navigate(false)
-                    }
-                    Target.CLIPBOARD -> {
-                        CopyPasteManager.getInstance().setContents(StringSelection(newFile.text))
-                    }
-                }
-
-            }
-    }
-
-
-    private fun createNewFile(language: Language, xmlFile: XmlFile, project: Project, newContent: String): PsiFile? {
-        val defaultExtension = language.associatedFileType?.defaultExtension ?: "css"
-        val newName = "${FileUtil.getNameWithoutExtension(xmlFile.name)}.$defaultExtension"
-        val newFile =
-            PsiFileFactory.getInstance(project).createFileFromText(newName, language, newContent) ?: return null
-        return CodeStyleManager.getInstance(project).reformat(newFile) as? PsiFile
-    }
-
-    override fun update(e: AnActionEvent) {
-        e.presentation.isEnabledAndVisible =
-            e.getData(CommonDataKeys.PSI_FILE) is XmlFile && e.project != null
-    }
-}
