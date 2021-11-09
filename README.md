@@ -8,9 +8,9 @@ The plugin supports:
 - Specifying target language: CSS, LESS, SCSS, SASS, Stylus
 - Using BEM-specific nesting
 
-All the settings you can find in *Preferences | ECSStractor*
+All the settings are available in *Preferences | ECSStractor*
 
-![Example ](example.png)
+![Example ](https://github.com/anstarovoyt/intellij-extract-css/raw/main/example.png)
 
 
 <!-- Plugin description end -->
