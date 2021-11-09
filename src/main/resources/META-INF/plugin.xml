@@ -1,18 +1,18 @@
 <idea-plugin>
     <id>intellij-extract-css</id>
-    <name>eCSStractor</name>
+    <name>ECSStractor</name>
     <vendor>Andrey Starovoyt</vendor>
     <depends>com.intellij.css</depends>
-    
+
     <actions>
-        <action text="Extract CSS" class="extract.css.actions.ExtractCSSAction">
-            <keyboard-shortcut first-keystroke="control shift X" keymap="$default" />
-            <add-to-group group-id="EditorPopupMenu" />
+        <action text="ECSStractor" description="Extract CSS" class="extract.css.actions.ExtractCSSAction">
+            <keyboard-shortcut first-keystroke="control shift X" keymap="$default"/>
+            <add-to-group group-id="EditorPopupMenu"/>
         </action>
     </actions>
-    
+
     <extensions defaultExtensionNs="com.intellij">
-        <projectConfigurable instance="extract.css.actions.ExtractCSSConfigurable" />
+        <projectConfigurable instance="extract.css.actions.ExtractCSSConfigurable"/>
         <projectService serviceImplementation="extract.css.actions.ExtractCSSSettings"/>
     </extensions>
 </idea-plugin>
