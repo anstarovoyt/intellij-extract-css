@@ -5,7 +5,7 @@
     <depends>com.intellij.css</depends>
 
     <actions>
-        <action text="ECSStractor" description="Extract CSS" class="extract.css.actions.ExtractCSSAction">
+        <action text="ECSStractor (Extract CSS)" description="Extract CSS" class="extract.css.actions.ExtractCSSAction">
             <keyboard-shortcut first-keystroke="control shift X" keymap="$default"/>
             <add-to-group group-id="EditorPopupMenu"/>
         </action>
