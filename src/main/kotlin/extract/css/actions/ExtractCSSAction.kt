@@ -32,8 +32,8 @@ class ExtractCSSAction : AnAction() {
         generateFileAndApply(project, state, xmlFile, newContent)
     }
 
-    private fun collectClassNames(xmlFile: XmlFile): MutableList<String> {
-        val classNames: MutableList<String> = mutableListOf()
+    private fun collectClassNames(xmlFile: XmlFile): List<String> {
+        val classNames = mutableSetOf<String>()
         xmlFile.acceptChildren(object : XmlRecursiveElementWalkingVisitor() {
             override fun visitXmlAttribute(attribute: XmlAttribute) {
                 val name = attribute.name
@@ -42,7 +42,8 @@ class ExtractCSSAction : AnAction() {
                 }
             }
         })
-        return classNames
+
+        return classNames.toList()
     }
 
     private fun generateFileAndApply(project: Project, state: ExtractState, xmlFile: XmlFile, newContent: String) {
@@ -127,6 +128,11 @@ private fun generateBEMNesting(state: ExtractState, classNames: List<String>, br
         }
 
         appendOpenBlock(builder, block, braces)
+        for (modifier in block.modifiers) {
+            builder.append("\n")
+            appendComment(builder, state, block.name, null, modifier)
+            appendModifier(builder, state, braces, modifier, true)
+        }
         for ((_, element) in block.elements) {
             builder.append("\n")
             appendComment(builder, state, block.name, element.name, null)
@@ -139,12 +145,6 @@ private fun generateBEMNesting(state: ExtractState, classNames: List<String>, br
 
             appendCloseElement(element, braces, builder)
         }
-        for (modifier in block.modifiers) {
-            builder.append("\n")
-            appendComment(builder, state, block.name, null, modifier)
-            appendModifier(builder, state, braces, modifier, true)
-        }
-
         appendCloseBlock(block, braces, builder)
     }
 
