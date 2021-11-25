@@ -4,4 +4,4 @@
 
 ## [Unreleased]
 ### Added
-- Created initial version of the plugin
+- JSX support
