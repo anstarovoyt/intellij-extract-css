@@ -3,6 +3,7 @@ package extract.css.actions
 import com.intellij.ide.scratch.ScratchRootType
 import com.intellij.lang.Language
 import com.intellij.lang.css.CSSLanguage
+import com.intellij.lang.javascript.psi.JSFile
 import com.intellij.lang.xml.XmlSurroundDescriptor
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -20,19 +21,20 @@ import java.awt.datatransfer.StringSelection
 class ExtractCSSAction : AnAction() {
 
     override fun actionPerformed(e: AnActionEvent) {
-        val xmlFile = e.getData(CommonDataKeys.PSI_FILE) as? XmlFile ?: return
+        val file = e.getData(CommonDataKeys.PSI_FILE) ?: return
+        if (!(file is JSFile || file is XmlFile)) return
         val project = e.project ?: return
 
         val state: ExtractState = getInstance(project).state
-        val classNames = collectClassNames(e, xmlFile)
+        val classNames = collectClassNames(e, file)
         val newContent = generateContent(state, classNames)
 
-        generateFileAndApply(project, state, xmlFile, newContent)
+        generateFileAndApply(project, state, file, newContent)
     }
 
-    private fun collectClassNames(e: AnActionEvent, xmlFile: XmlFile): List<String> {
+    private fun collectClassNames(e: AnActionEvent, file: PsiFile): List<String> {
         val classNames = mutableSetOf<String>()
-        val elements = extractElementForVisiting(e, xmlFile)
+        val elements = extractElementForVisiting(e, file)
         for (element in elements) {
             element.acceptChildren(object : XmlRecursiveElementWalkingVisitor() {
                 override fun visitXmlAttribute(attribute: XmlAttribute) {
@@ -47,10 +49,10 @@ class ExtractCSSAction : AnAction() {
         return classNames.toList()
     }
 
-    private fun extractElementForVisiting(e: AnActionEvent, xmlFile: XmlFile): List<PsiElement> {
-        val editor = e.getData(CommonDataKeys.EDITOR) ?: return listOf(xmlFile)
+    private fun extractElementForVisiting(e: AnActionEvent, file: PsiFile): List<PsiElement> {
+        val editor = e.getData(CommonDataKeys.EDITOR) ?: return listOf(file)
         val selectionModel = editor.selectionModel
-        if (!selectionModel.hasSelection()) return listOf(xmlFile)
+        if (!selectionModel.hasSelection()) return listOf(file)
         val blockSelectionStarts = selectionModel.blockSelectionStarts
         val blockSelectionEnds = selectionModel.blockSelectionEnds
 
@@ -58,22 +60,22 @@ class ExtractCSSAction : AnAction() {
 
         blockSelectionStarts.forEachIndexed { index, start ->
             val end = blockSelectionEnds[index]
-            result.addAll(XmlSurroundDescriptor().getElementsToSurround(xmlFile, start, end))
+            result.addAll(XmlSurroundDescriptor().getElementsToSurround(file, start, end))
         }
 
-        return if (result.isEmpty()) listOf(xmlFile) else result
+        return if (result.isEmpty()) listOf(file) else result
     }
 
-    private fun generateFileAndApply(project: Project, state: ExtractState, xmlFile: XmlFile, newContent: String) {
+    private fun generateFileAndApply(project: Project, state: ExtractState, file: PsiFile, newContent: String) {
         WriteCommandAction
             .writeCommandAction(project)
             .withName("Create File")
             .run<Exception> {
                 val language = Language.findLanguageByID(state.language) ?: CSSLanguage.INSTANCE
-                val newFile = createNewFile(language, xmlFile, project, newContent) ?: return@run
+                val newFile = createNewFile(language, file, project, newContent) ?: return@run
                 when (state.targetValue()) {
                     Target.NEW_FILE -> {
-                        val directory = xmlFile.parent ?: return@run
+                        val directory = file.parent ?: return@run
                         val actualFile = directory.add(newFile) as? PsiFile ?: return@run
                         actualFile.navigate(true)
                     }
@@ -91,17 +93,18 @@ class ExtractCSSAction : AnAction() {
             }
     }
 
-    private fun createNewFile(language: Language, xmlFile: XmlFile, project: Project, newContent: String): PsiFile? {
+    private fun createNewFile(language: Language, file: PsiFile, project: Project, newContent: String): PsiFile? {
         val defaultExtension = language.associatedFileType?.defaultExtension ?: "css"
-        val newName = "${FileUtil.getNameWithoutExtension(xmlFile.name)}.$defaultExtension"
+        val newName = "${FileUtil.getNameWithoutExtension(file.name)}.$defaultExtension"
         val newFile =
             PsiFileFactory.getInstance(project).createFileFromText(newName, language, newContent) ?: return null
         return CodeStyleManager.getInstance(project).reformat(newFile) as? PsiFile
     }
 
     override fun update(e: AnActionEvent) {
+        val file = e.getData(CommonDataKeys.PSI_FILE)
         e.presentation.isEnabledAndVisible =
-            e.getData(CommonDataKeys.PSI_FILE) is XmlFile && e.project != null
+            (file is XmlFile || file is JSFile) && e.project != null
     }
 }
 

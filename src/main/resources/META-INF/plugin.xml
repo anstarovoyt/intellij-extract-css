@@ -4,6 +4,7 @@
     <vendor>Andrey Starovoyt</vendor>
     <depends>com.intellij.css</depends>
     <depends>com.intellij.modules.lang</depends>
+    <depends>JavaScript</depends>
 
     <actions>
         <action text="ECSStractor (Extract CSS)" description="Extract CSS" class="extract.css.actions.ExtractCSSAction">
