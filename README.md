@@ -13,3 +13,8 @@ You can tweak the plugin settings in *Preferences / Settings | ECSStractor*.
 
 
 <!-- Plugin description end -->
+
+### For plugin developers
+A description of how to develop plugins for Intellij IDEA based IDE's:  
+https://blog.jetbrains.com/webstorm/2021/09/building-a-plugin-for-webstorm-part-1/  
+https://blog.jetbrains.com/webstorm/2021/11/building-a-plugin-for-webstorm-part-2/  
