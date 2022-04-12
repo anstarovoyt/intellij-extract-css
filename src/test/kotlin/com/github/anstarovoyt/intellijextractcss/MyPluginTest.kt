@@ -5,8 +5,11 @@ import extract.css.actions.ExtractState
 import extract.css.actions.TargetLanguage
 import extract.css.actions.generateContent
 import junit.framework.TestCase
+import org.junit.Test
 
 class MyPluginTest : BasePlatformTestCase() {
+
+    @Test
     fun testSimple() {
         TestCase.assertEquals(
             """
@@ -16,6 +19,7 @@ class MyPluginTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun testNoBEMSCSS() {
         val state = ExtractState()
         state.bem = true
@@ -28,6 +32,7 @@ class MyPluginTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun testBEMElement() {
         val state = ExtractState()
         state.bem = true
@@ -41,6 +46,7 @@ class MyPluginTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun testBEMModifier() {
         val state = ExtractState()
         state.bem = true
@@ -54,6 +60,7 @@ class MyPluginTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun testBEMElementModifier() {
         val state = ExtractState()
         state.bem = true
@@ -69,6 +76,7 @@ class MyPluginTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun testBEMElements() {
         val state = ExtractState()
         state.bem = true
@@ -83,6 +91,7 @@ class MyPluginTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun testBEMModifiers() {
         val state = ExtractState()
         state.bem = true
@@ -97,6 +106,7 @@ class MyPluginTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun testBEMElementModifierStylus() {
         val state = ExtractState()
         state.bem = true
@@ -110,6 +120,7 @@ class MyPluginTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun testBEMElementModifiersStylus() {
         val state = ExtractState()
         state.bem = true
@@ -124,6 +135,7 @@ class MyPluginTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun testBEMElementsStylus() {
         val state = ExtractState()
         state.bem = true
@@ -137,6 +149,7 @@ class MyPluginTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun testBEMElementModifierComments() {
         val state = ExtractState()
         state.bem = true
@@ -155,6 +168,7 @@ class MyPluginTest : BasePlatformTestCase() {
         )
     }
 
+    @Test
     fun testBEMElementModifierStylusComments() {
         val state = ExtractState()
         state.bem = true
