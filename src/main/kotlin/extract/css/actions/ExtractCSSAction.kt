@@ -21,7 +21,7 @@ import java.awt.datatransfer.StringSelection
 class ExtractCSSAction : AnAction() {
 
     override fun actionPerformed(e: AnActionEvent) {
-        val file = e.getData(CommonDataKeys.PSI_FILE) ?: return
+        val file = getExactFile(e.getData(CommonDataKeys.PSI_FILE))
         if (!(file is JSFile || file is XmlFile)) return
         val project = e.project ?: return
 
@@ -30,6 +30,12 @@ class ExtractCSSAction : AnAction() {
         val newContent = generateContent(state, classNames)
 
         generateFileAndApply(project, state, file, newContent)
+    }
+
+    private fun getExactFile(file: PsiFile?): PsiFile? {
+        if (file == null) return null
+        val allFiles = file.viewProvider.allFiles
+        return allFiles.firstOrNull { it is JSFile || it is XmlFile }
     }
 
     private fun collectClassNames(e: AnActionEvent, file: PsiFile): List<String> {
@@ -102,7 +108,7 @@ class ExtractCSSAction : AnAction() {
     }
 
     override fun update(e: AnActionEvent) {
-        val file = e.getData(CommonDataKeys.PSI_FILE)
+        val file = getExactFile(e.getData(CommonDataKeys.PSI_FILE))
         e.presentation.isEnabledAndVisible =
             (file is XmlFile || file is JSFile) && e.project != null
     }
