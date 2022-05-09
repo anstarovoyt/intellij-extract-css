@@ -4,4 +4,4 @@
 
 ## [Unreleased]
 ### Added
-- JSX support
+- PHP and other template languages support
