@@ -4,4 +4,4 @@
 
 ## [Unreleased]
 ### Added
-- PHP and other template languages support
+- 2022.2 Support

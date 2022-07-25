@@ -6,7 +6,7 @@ plugins {
     // Java support
     id("java")
     // Kotlin support
-    id("org.jetbrains.kotlin.jvm") version "1.5.30"
+    id("org.jetbrains.kotlin.jvm") version "1.7.10"
     // Gradle IntelliJ Plugin
     id("org.jetbrains.intellij") version "1.5.2"
     // Gradle Changelog Plugin
@@ -23,7 +23,7 @@ repositories {
 
 kotlin {
     jvmToolchain {
-        (this as JavaToolchainSpec).languageVersion.set(JavaLanguageVersion.of(11))
+        this.languageVersion.set(JavaLanguageVersion.of(11))
     }
 }
 
@@ -46,10 +46,6 @@ changelog {
 }
 
 tasks {
-    wrapper {
-        gradleVersion = properties("gradleVersion")
-    }
-
     patchPluginXml {
         version.set(properties("pluginVersion"))
 
