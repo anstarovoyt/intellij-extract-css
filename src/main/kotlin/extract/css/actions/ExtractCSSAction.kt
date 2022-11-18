@@ -3,8 +3,10 @@ package extract.css.actions
 import com.intellij.ide.scratch.ScratchRootType
 import com.intellij.lang.Language
 import com.intellij.lang.css.CSSLanguage
+import com.intellij.lang.javascript.psi.JSEmbeddedContent
 import com.intellij.lang.javascript.psi.JSFile
 import com.intellij.lang.xml.XmlSurroundDescriptor
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
@@ -19,6 +21,8 @@ import com.intellij.psi.xml.XmlFile
 import java.awt.datatransfer.StringSelection
 
 class ExtractCSSAction : AnAction() {
+
+
 
     override fun actionPerformed(e: AnActionEvent) {
         val file = getExactFile(e.getData(CommonDataKeys.PSI_FILE))
@@ -46,6 +50,9 @@ class ExtractCSSAction : AnAction() {
                 override fun visitXmlAttribute(attribute: XmlAttribute) {
                     val name = attribute.name
                     if (name == "class" || name == "className") {
+                        val value = attribute.valueElement ?: return
+                        if (value.firstChild is JSEmbeddedContent) return
+
                         classNames.addAll(attribute.value?.split(" ")?.filter(String::isNotBlank) ?: emptyList())
                     }
                 }
@@ -106,6 +113,8 @@ class ExtractCSSAction : AnAction() {
             PsiFileFactory.getInstance(project).createFileFromText(newName, language, newContent) ?: return null
         return CodeStyleManager.getInstance(project).reformat(newFile) as? PsiFile
     }
+
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
     override fun update(e: AnActionEvent) {
         val file = getExactFile(e.getData(CommonDataKeys.PSI_FILE))

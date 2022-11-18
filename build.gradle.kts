@@ -6,9 +6,9 @@ plugins {
     // Java support
     id("java")
     // Kotlin support
-    id("org.jetbrains.kotlin.jvm") version "1.7.10"
+    id("org.jetbrains.kotlin.jvm") version "1.7.21"
     // Gradle IntelliJ Plugin
-    id("org.jetbrains.intellij") version "1.5.2"
+    id("org.jetbrains.intellij") version "1.10.0"
     // Gradle Changelog Plugin
     id("org.jetbrains.changelog") version "1.3.0"
 }
@@ -23,7 +23,7 @@ repositories {
 
 kotlin {
     jvmToolchain {
-        this.languageVersion.set(JavaLanguageVersion.of(11))
+        this.languageVersion.set(JavaLanguageVersion.of(17))
     }
 }
 
