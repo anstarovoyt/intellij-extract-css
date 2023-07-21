@@ -21,9 +21,6 @@ import com.intellij.psi.xml.XmlFile
 import java.awt.datatransfer.StringSelection
 
 class ExtractCSSAction : AnAction() {
-
-
-
     override fun actionPerformed(e: AnActionEvent) {
         val file = getExactFile(e.getData(CommonDataKeys.PSI_FILE))
         if (!(file is JSFile || file is XmlFile)) return

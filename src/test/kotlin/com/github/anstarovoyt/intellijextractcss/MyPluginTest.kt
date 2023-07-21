@@ -7,6 +7,7 @@ import extract.css.actions.generateContent
 import junit.framework.TestCase
 import org.junit.Test
 
+@Suppress("JUnitMixedFramework")
 class MyPluginTest : BasePlatformTestCase() {
 
     @Test
