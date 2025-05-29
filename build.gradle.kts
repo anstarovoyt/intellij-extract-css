@@ -6,7 +6,7 @@ plugins {
     // Java support
     id("java")
     // Kotlin support
-    id("org.jetbrains.kotlin.jvm") version "2.0.20"
+    id("org.jetbrains.kotlin.jvm") version "2.0.21"
     // Gradle IntelliJ Plugin
     id("org.jetbrains.intellij") version "1.17.4"
     // Gradle Changelog Plugin
@@ -24,6 +24,7 @@ repositories {
 dependencies {
     testImplementation(platform("org.junit:junit-bom:5.11.4"))
     testImplementation("org.junit.jupiter:junit-jupiter")
+    testImplementation("junit:junit:4.13.2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
