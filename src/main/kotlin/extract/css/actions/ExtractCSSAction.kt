@@ -48,15 +48,35 @@ class ExtractCSSAction : AnAction() {
                     val name = attribute.name
                     if (name == "class" || name == "className") {
                         val value = attribute.valueElement ?: return
-                        if (value.firstChild is JSEmbeddedContent) return
+if (value.firstChild is JSEmbeddedContent) {
+                             // For JS embedded content, extract class names from the actual content
+                             val embeddedContent = value.firstChild?.text ?: ""
+                             val jsClassNames = extractClassNamesFromJS(embeddedContent)
+                             classNames.addAll(jsClassNames)
+                             return
+                         }
 
-                        classNames.addAll(attribute.value?.split(" ")?.filter(String::isNotBlank) ?: emptyList())
+                         classNames.addAll(attribute.value?.split(" ")?.filter(String::isNotBlank) ?: emptyList())
                     }
                 }
             })
         }
 
         return classNames.toList()
+    }
+
+    private fun extractClassNamesFromJS(jsContent: String): List<String> {
+        // Simple regex to extract class names from JS content
+        val classNameRegex = Regex("""(?:class|className)\s*=\s*["']([^"']*)["']""")
+        val matches = classNameRegex.findAll(jsContent)
+        val classNames = mutableListOf<String>()
+        
+        matches.forEach { match ->
+            val classes = match.groupValues[1].split("\\s+".toRegex()).filter { it.isNotBlank() }
+            classNames.addAll(classes)
+        }
+        
+        return classNames
     }
 
     private fun extractElementForVisiting(e: AnActionEvent, file: PsiFile): List<PsiElement> {
