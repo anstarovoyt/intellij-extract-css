@@ -185,4 +185,28 @@ class MyPluginTest : BasePlatformTestCase() {
         """.trimIndent(), generateContent(state, listOf("foo__element_modifier"))
         )
     }
+
+    @Test
+    fun testEmptyClassNames() {
+        val state = ExtractState()
+        state.bem = true
+        state.language = TargetLanguage.CSS.name
+        TestCase.assertEquals(
+            "",
+            generateContent(state, listOf("", "  ", "foo"))
+        )
+    }
+
+    @Test
+    fun testMalformedBEMClassNames() {
+        val state = ExtractState()
+        state.bem = true
+        state.language = TargetLanguage.SCSS.name
+        TestCase.assertEquals(
+            """
+            .foo {}
+            .bar {}
+        """.trimIndent(), generateContent(state, listOf("__element", "_modifier", "foo", "bar"))
+        )
+    }
 }

@@ -50,7 +50,10 @@ class ExtractCSSAction : AnAction() {
                         val value = attribute.valueElement ?: return
                         if (value.firstChild is JSEmbeddedContent) return
 
-                        classNames.addAll(attribute.value?.split(" ")?.filter(String::isNotBlank) ?: emptyList())
+                        val classValue = attribute.value
+                        if (classValue != null) {
+                            classNames.addAll(classValue.split(" ").filter(String::isNotBlank))
+                        }
                     }
                 }
             })
@@ -281,29 +284,50 @@ private fun prepare(state: ExtractState, classNames: List<String>): List<BEMBloc
     val modPrefix = state.bemModifierPrefix
 
     for (className in classNames) {
+        // Skip empty class names
+        if (className.isNullOrEmpty()) continue
+        
         val indexOfElement = className.indexOf(elPrefix)
         if (hasElement(indexOfElement, className, elPrefix)) {
             val blockName = className.substring(0, indexOfElement)
             val elementWithModifier = className.substring(indexOfElement + elPrefix.length)
+            
+            // Skip if we don't have a valid element name
+            if (elementWithModifier.isNullOrEmpty()) continue
+            
             val bemBlock = blocks.computeIfAbsent(blockName) { BEMBlock(it) }
             val indexOfModifier = elementWithModifier.indexOf(modPrefix)
             if (hasModifier(indexOfModifier, elementWithModifier, modPrefix)) {
                 val elementName = elementWithModifier.substring(0, indexOfModifier)
                 val modifierName = elementWithModifier.substring(indexOfModifier + modPrefix.length)
+                
+                // Skip if we don't have valid names
+                if (elementName.isNullOrEmpty() || modifierName.isNullOrEmpty()) continue
+                
                 val bemElement = bemBlock.elements.computeIfAbsent(elementName) { BEMElement(it) }
                 bemElement.modifiers.add(modifierName)
             } else {
-                bemBlock.elements.putIfAbsent(elementWithModifier, BEMElement(elementWithModifier))
+                // Make sure we have a valid element name
+                if (elementWithModifier.isNotEmpty()) {
+                    bemBlock.elements.putIfAbsent(elementWithModifier, BEMElement(elementWithModifier))
+                }
             }
         } else {
             val indexOfModifier = className.indexOf(modPrefix)
             if (hasModifier(indexOfModifier, className, modPrefix)) {
                 val blockName = className.substring(0, indexOfModifier)
                 val modifierName = className.substring(indexOfModifier + modPrefix.length)
+                
+                // Skip if we don't have valid names
+                if (blockName.isNullOrEmpty() || modifierName.isNullOrEmpty()) continue
+                
                 val bemBlock = blocks.computeIfAbsent(blockName) { BEMBlock(it) }
                 bemBlock.modifiers.add(modifierName)
             } else {
-                blocks.putIfAbsent(className, BEMBlock(className))
+                // Make sure we have a valid block name
+                if (className.isNotEmpty()) {
+                    blocks.putIfAbsent(className, BEMBlock(className))
+                }
             }
         }
     }
@@ -312,10 +336,14 @@ private fun prepare(state: ExtractState, classNames: List<String>): List<BEMBloc
 }
 
 private fun hasElement(indexOfElement: Int, className: String, elPrefix: String) =
-    indexOfElement > 0 && className.length > indexOfElement + elPrefix.length
+    indexOfElement > 0 && 
+    indexOfElement < className.length - elPrefix.length &&
+    className.length > indexOfElement + elPrefix.length
 
 private fun hasModifier(
     indexOfModifier: Int,
     elementWithModifier: String,
     modPrefix: String
-) = indexOfModifier > 0 && elementWithModifier.length > indexOfModifier + modPrefix.length
+) = indexOfModifier > 0 && 
+    indexOfModifier < elementWithModifier.length - modPrefix.length &&
+    elementWithModifier.length > indexOfModifier + modPrefix.length
