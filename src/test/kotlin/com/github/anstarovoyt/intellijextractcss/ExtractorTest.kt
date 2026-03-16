@@ -1,5 +1,7 @@
 package com.github.anstarovoyt.intellijextractcss
 
+import com.intellij.ide.plugins.PluginManagerCore
+import com.intellij.openapi.extensions.PluginId
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import extract.css.actions.ExtractState
 import extract.css.actions.TargetLanguage
@@ -8,7 +10,17 @@ import junit.framework.TestCase
 import org.junit.Test
 
 @Suppress("JUnitMixedFramework")
-class MyPluginTest : BasePlatformTestCase() {
+class ExtractorTest : BasePlatformTestCase() {
+
+    @Test
+    fun testJSPluginLoaded() {
+        val pluginId = PluginId.getId("JavaScript")
+        val plugin = PluginManagerCore.getPlugin(pluginId)
+        assertNotNull(plugin)
+        val reason = PluginManagerCore.getPluginNonLoadReason(pluginId)
+        assertNull(reason?.detailedMessage)
+        assertTrue(PluginManagerCore.isLoaded(pluginId))
+    }
 
     @Test
     fun testSimple() {
