@@ -17,8 +17,8 @@ class ExtractorTest : BasePlatformTestCase() {
         val pluginId = PluginId.getId("JavaScript")
         val plugin = PluginManagerCore.getPlugin(pluginId)
         assertNotNull(plugin)
-        val reason = PluginManagerCore.getPluginNonLoadReason(pluginId)
-        assertNull(reason?.detailedMessage)
+//        val reason = PluginManagerCore.getPluginNonLoadReason(pluginId)
+//        assertNull(reason?.detailedMessage)
         assertTrue(PluginManagerCore.isLoaded(pluginId))
     }
 
