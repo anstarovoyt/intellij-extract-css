@@ -43,17 +43,7 @@ class ExtractCSSAction : AnAction() {
         val classNames = mutableSetOf<String>()
         val elements = extractElementForVisiting(e, file)
         for (element in elements) {
-            element.acceptChildren(object : XmlRecursiveElementWalkingVisitor() {
-                override fun visitXmlAttribute(attribute: XmlAttribute) {
-                    val name = attribute.name
-                    if (name == "class" || name == "className") {
-                        val value = attribute.valueElement ?: return
-                        if (value.firstChild is JSEmbeddedContent) return
-
-                        classNames.addAll(attribute.value?.split(" ")?.filter(String::isNotBlank) ?: emptyList())
-                    }
-                }
-            })
+            classNames.addAll(collectClassNames(element))
         }
 
         return classNames.toList()
@@ -118,6 +108,62 @@ class ExtractCSSAction : AnAction() {
         e.presentation.isEnabledAndVisible =
             (file is XmlFile || file is JSFile) && e.project != null
     }
+}
+
+fun collectClassNames(element: PsiElement): Set<String> {
+    val classNames = linkedSetOf<String>()
+
+    element.accept(object : PsiRecursiveElementWalkingVisitor() {
+        override fun visitElement(element: PsiElement) {
+            if (element is XmlAttribute) classNames.addAll(collectXmlAttributeClassNames(element))
+            super.visitElement(element)
+        }
+    })
+
+    if (isPugLikeElement(element)) {
+        classNames.addAll(collectPugClassNamesFromText(element.text))
+    }
+
+    return classNames
+}
+
+private fun collectXmlAttributeClassNames(attribute: XmlAttribute): List<String> {
+    val name = attribute.name
+    if (name != "class" && name != "className") return emptyList()
+
+    val value = attribute.valueElement ?: return emptyList()
+    if (value.firstChild is JSEmbeddedContent) return emptyList()
+
+    return attribute.value?.split(" ")?.filter(String::isNotBlank) ?: emptyList()
+}
+
+fun collectPugClassNamesFromText(text: String): List<String> {
+    val result = linkedSetOf<String>()
+    val attributeRegex = Regex("""(?:class|className)\s*=\s*(['"])(.*?)\1""")
+    val shorthandRegex = Regex("""\.([A-Za-z0-9_-]+)""")
+
+    text.lineSequence().forEach { rawLine ->
+        val line = rawLine.trim()
+        if (line.isBlank() || line.startsWith("//")) return@forEach
+
+        attributeRegex.findAll(line).forEach { match ->
+            result.addAll(match.groupValues[2].split(" ").filter(String::isNotBlank))
+        }
+
+        val shorthandArea = line.takeWhile { it != ' ' && it != '\t' && it != '(' && it != '=' && it != '!' }
+        shorthandRegex.findAll(shorthandArea).forEach { match ->
+            result.add(match.groupValues[1])
+        }
+    }
+
+    return result.toList()
+}
+
+private fun isPugLikeElement(element: PsiElement): Boolean {
+    val file = element.containingFile ?: return false
+    val extension = file.virtualFile?.extension?.lowercase()
+    val languageId = file.language.id.lowercase()
+    return extension == "pug" || extension == "jade" || languageId == "jade"
 }
 
 class BEMBlock(val name: String) {

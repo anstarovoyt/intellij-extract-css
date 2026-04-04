@@ -5,6 +5,7 @@ import com.intellij.openapi.extensions.PluginId
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import extract.css.actions.ExtractState
 import extract.css.actions.TargetLanguage
+import extract.css.actions.collectPugClassNamesFromText
 import extract.css.actions.generateContent
 import junit.framework.TestCase
 import org.junit.Test
@@ -195,6 +196,32 @@ class ExtractorTest : BasePlatformTestCase() {
               // .foo__element_modifier
               &_modifier
         """.trimIndent(), generateContent(state, listOf("foo__element_modifier"))
+        )
+    }
+
+    @Test
+    fun testCollectClassNamesFromPugShorthand() {
+        TestCase.assertEquals(
+            listOf("foo", "bar", "content", "content_theme_dark"),
+            collectPugClassNamesFromText(
+                """
+                    .foo.bar
+                    section.content.content_theme_dark
+                """.trimIndent()
+            )
+        )
+    }
+
+    @Test
+    fun testCollectClassNamesFromPugClassAttribute() {
+        TestCase.assertEquals(
+            listOf("foo", "bar", "baz"),
+            collectPugClassNamesFromText(
+                """
+                    div(class="foo bar")
+                    button(className="baz")
+                """.trimIndent()
+            )
         )
     }
 }
