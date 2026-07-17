@@ -4,6 +4,6 @@
 
 ## [Unreleased]
 ### Added
-- 2022.2 Support
+- WebStorm 2026.2 support
 ### Changed
-- Attempted migration to IntelliJ Platform Gradle Plugin 2.0.0 (not completed due to plugin availability)
+- Updated the IntelliJ Platform Gradle Plugin and Foojay toolchain resolver
